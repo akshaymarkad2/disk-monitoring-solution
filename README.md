@@ -10,3 +10,6 @@ A solution to monitor disk utilization across AWS EC2 instances using Ansible an
 ## Setup
 1. Clone this repository
 2. Run `ansible-playbook playbooks/disk_monitoring.yml`
+
+## Architecture
+<img width="557" height="452" alt="Architecture" src="https://github.com/user-attachments/assets/9dcf2b4f-b2dc-468e-980b-5ffcd5f5a4dd" />
