@@ -4,11 +4,33 @@
     {
       "Effect": "Allow",
       "Action": [
-        "ec2:DescribeInstances",
-        "cloudwatch:PutMetricData",
+        "ec2:DescribeInstances"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Monitor": "true"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricData"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "cloudwatch:Namespace": "DiskMonitoring"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
         "ssm:GetParameter"
       ],
-      "Resource": "*"
+      "Resource": "arn:aws:ssm:region:account-id:parameter/monitoring/*"
     }
   ]
 }
