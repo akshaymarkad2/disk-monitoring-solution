@@ -3,17 +3,20 @@ Resources:
   DiskAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: "HighDiskUsage-{{ instance_id }}"
-      AlarmDescription: "Triggers when disk utilization exceeds 90%"
+      AlarmName: "HighDiskUsage-{{ instance_id[:50] }}"  # Truncated to 50 chars
+      AlarmDescription: "Triggers when disk utilization exceeds 90% on {{ instance_id }}"
       MetricName: DiskUtilization
       Namespace: DiskMonitoring
       Statistic: Average
       Period: 300
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3  # Requires 3 consecutive 5-minute periods above threshold
       Threshold: 90
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: InstanceId
-          Value: "{{ instance_id }}"
+          Value: "{{ instance_id }}"  # Sanitized in Ansible
       AlarmActions:
-        - arn:aws:sns:us-east-1:123456789012:DiskAlertTopic
+        - "{{ alarm_sns_arn | default('arn:aws:sns:' + region + ':' + account_id + ':DiskAlertTopic') }}"
+      OKActions:
+        - "{{ alarm_sns_arn | default('arn:aws:sns:' + region + ':' + account_id + ':DiskAlertTopic') }}"
+      TreatMissingData: notBreaching  # Avoid false alarms if metrics stop temporarily
