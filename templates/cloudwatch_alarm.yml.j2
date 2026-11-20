@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  DiskAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "HighDiskUsage-{{ instance_id }}"
+      AlarmDescription: "Triggers when disk utilization exceeds 90%"
+      MetricName: DiskUtilization
+      Namespace: DiskMonitoring
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 90
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: "{{ instance_id }}"
+      AlarmActions:
+        - arn:aws:sns:us-east-1:123456789012:DiskAlertTopic
