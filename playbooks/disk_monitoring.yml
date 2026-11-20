@@ -3,6 +3,9 @@
   hosts: all
   gather_facts: false
   tasks:
+    - name: Gather facts
+      ansible.builtin.setup:
+
     - name: Collect disk facts (Linux)
       ansible.builtin.disk_facts:
         path: /
@@ -12,9 +15,9 @@
     - name: Collect disk facts (Windows)
       ansible.windows.win_disk_facts:
       when: ansible_facts['os_family'] == 'Windows'
-      register: disk_facts
+      register: win_disk_facts
 
-    - name: Push disk utilization to CloudWatch
+    - name: Push disk utilization to CloudWatch (Linux)
       aws_cloudwatch_put_metric_data:
         namespace: DiskMonitoring
         metric_data:
@@ -22,8 +25,30 @@
             dimensions:
               InstanceId: "{{ ansible_host }}"
               Device: "{{ item.device }}"
-            value: "{{ item.percent }}%"
+            value: "{{ item.percent | float }}"
             unit: Percent
       loop: "{{ disk_facts.disk_facts }}"
       loop_control:
         label: "{{ item.device }}"
+      when: ansible_facts['os_family'] == 'Linux'
+      ignore_errors: yes
+      retries: 3
+      delay: 10
+
+    - name: Push disk utilization to CloudWatch (Windows)
+      aws_cloudwatch_put_metric_data:
+        namespace: DiskMonitoring
+        metric_data:
+          - metric_name: DiskUtilization
+            dimensions:
+              InstanceId: "{{ ansible_host }}"
+              Device: "{{ item.drive }}"
+            value: "{{ item.free_space | float }}"
+            unit: Percent
+      loop: "{{ win_disk_facts.win_disk_facts }}"
+      loop_control:
+        label: "{{ item.drive }}"
+      when: ansible_facts['os_family'] == 'Windows'
+      ignore_errors: yes
+      retries: 3
+      delay: 10
