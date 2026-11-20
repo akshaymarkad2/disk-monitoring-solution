@@ -17,7 +17,7 @@ This solution addresses the critical need for proactive disk space monitoring in
 
 --- 
 ## Architecture
-![Architecture Diagram](docs/architecture.png)
+![Architecture Diagram](doc/architecture.png)
 
 ---
 ## Key Features  
