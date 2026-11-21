@@ -87,12 +87,16 @@ disk-monitoring-solution/
 
 4. **Deploy & Configure CloudWatch Agent Across Fleet**
    ```bash
-   ansible-playbook -i inventory.ini playbooks/deploy_cloudwatch_agent.yml
+   chmod +x inventory/aws_inventory.py
+   export AWS_ACCOUNT_IDS="111122223333,444455556666"
+   export AWS_REGION="us-east-1"
+
+   ansible-playbook -i inventory/aws_inventory.py playbooks/deploy_cloudwatch_agent.yml
    ```
 
 5. **Enforce Disk Thresholds & Provision CloudWatch Alarms**
    ```bash
-   ansible-playbook -i inventory.ini playbooks/disk_monitoring.yml
+   ansible-playbook -i inventory/aws_inventory.py playbooks/disk_monitoring.yml
    ```
 
 ---
@@ -102,7 +106,7 @@ disk-monitoring-solution/
 ### 1. Automated Day-1 Onboarding & Drift Remediation
 Schedule periodic configuration runs via **AWS Systems Manager State Manager** (or cron on the Ansible controller) to ensure newly launched VMs automatically receive the monitoring configuration:
 ```bash
-0 */6 * * * cd /opt/disk-monitoring-solution && python3 inventory/aws_inventory.py > inventory.ini && ansible-playbook -i inventory.ini playbooks/deploy_cloudwatch_agent.yml
+0 */6 * * * cd /opt/disk-monitoring-solution && AWS_ACCOUNT_IDS="111122223333,444455556666" AWS_REGION="us-east-1" /usr/local/bin/ansible-playbook -i inventory/aws_inventory.py playbooks/deploy_cloudwatch_agent.yml >> /var/log/disk_monitoring_cron.log 2>&1
 ```
 
 ### 2. Centralized Visibility
