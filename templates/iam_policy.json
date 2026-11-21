@@ -2,18 +2,32 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "EC2AndSSMDiscovery",
       "Effect": "Allow",
       "Action": [
-        "ec2:DescribeInstances"
+        "ec2:DescribeInstances",
+        "ec2:DescribeTags",
+        "ssm:DescribeInstanceInformation"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SSMCommandAndSessionExecution",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:StartSession",
+        "ssm:SendCommand",
+        "ssm:GetCommandInvocation"
       ],
       "Resource": "*",
       "Condition": {
         "StringEquals": {
-          "ec2:ResourceTag/Monitor": "true"
+          "ssm:resourceTag/Monitor": "true"
         }
       }
     },
     {
+      "Sid": "CloudWatchMetricIngestion",
       "Effect": "Allow",
       "Action": [
         "cloudwatch:PutMetricData"
@@ -21,16 +35,30 @@
       "Resource": "*",
       "Condition": {
         "StringEquals": {
-          "cloudwatch:Namespace": "DiskMonitoring"
+          "cloudwatch:namespace": "DiskMonitoring"
         }
       }
     },
     {
+      "Sid": "CloudWatchAlarmProvisioning",
       "Effect": "Allow",
       "Action": [
-        "ssm:GetParameter"
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:DescribeAlarms",
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DescribeStacks"
       ],
-      "Resource": "arn:aws:ssm:region:account-id:parameter/monitoring/*"
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadMonitoringConfigParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParametersByPath"
+      ],
+      "Resource": "arn:aws:ssm:*:*:parameter/monitoring/*"
     }
   ]
 }
