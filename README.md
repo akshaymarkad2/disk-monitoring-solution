@@ -21,9 +21,10 @@ This solution addresses the critical need for proactive disk space monitoring in
 
 ---
 ## Key Features  
-- **Multi-Account Support:** Automatically discovers instances across AWS accounts using tags.  
-- **Agentless Monitoring:** No software installation on EC2 instances.  
-- **Real-Time Alerts:** CloudWatch alarms with **OKActions** for recovery notifications.  
+- **Multi-Account Support:** Cross-account STS AssumeRole + OAM for centralized metrics.
+- **Agentless Monitoring:** Uses AWS Systems Manager (SSM).
+- **Real-Time Alerts:** CloudWatch alarms with **OKActions** for recovery notifications.
+- **CloudWatch Agent**: Deployed on each VM to **push metrics directly** to CloudWatch.
 - **Secure Credential Management:** SSH keys stored in **AWS SSM Parameter Store** (encrypted).  
 - **Extensible:** Ready to expand to **Azure/GCP** with minimal changes.  
 - **Compliance-Ready:** Aligns with **CIS AWS Benchmarks** and **AWS Well-Architected Framework**.
