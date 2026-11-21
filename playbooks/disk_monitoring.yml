@@ -1,16 +1,28 @@
 ---
-- name: Disk Monitoring (SSM + CloudWatch Agent Only)
+- name: Verify CloudWatch Agent & Provision Disk Alarms
   hosts: all
-  gather_facts: false
+  gather_facts: true
   tasks:
-    - name: Verify CloudWatch Agent is running
-      win_service:
+    - name: Ensure CloudWatch Agent is running on Windows
+      ansible.windows.win_service:
         name: AmazonCloudWatchAgent
         state: started
       when: ansible_facts['os_family'] == 'Windows'
 
-    - name: Verify CloudWatch Agent is running
-      service:
+    - name: Ensure CloudWatch Agent is running on Linux
+      ansible.builtin.service:
         name: amazon-cloudwatch-agent
         state: started
-      when: ansible_facts['os_family'] == 'Linux'
+        enabled: true
+      when: ansible_facts['os_family'] != 'Windows'
+
+    - name: Render CloudWatch Disk Alarm CloudFormation template
+      ansible.builtin.template:
+        src: ../templates/cloudwatch_alarm.yml.j2
+        dest: "/tmp/cw_alarm_{{ inventory_hostname }}.yml"
+        mode: "0644"
+      delegate_to: localhost
+      vars:
+        instance_id: "{{ inventory_hostname }}"
+        region: "{{ aws_region }}"
+        account_id: "{{ aws_account_id }}"
