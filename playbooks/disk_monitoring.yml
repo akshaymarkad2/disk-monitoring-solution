@@ -1,54 +1,72 @@
 ---
-- name: Collect and push disk utilization metrics
+- name: Deploy CloudWatch Agent via SSM (Linux & Windows)
   hosts: all
   gather_facts: false
   tasks:
-    - name: Gather facts
-      ansible.builtin.setup:
+    - name: Deploy CloudWatch Agent using SSM
+      aws_ssm_send_command:
+        instance_ids: "{{ ansible_host }}"
+        document_name: AWS-RunShellScript
+        parameters:
+          commands:
+            - |
+              # Linux: Install CloudWatch Agent
+              if [ -f /etc/os-release ]; then
+                wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+                sudo dpkg -i amazon-cloudwatch-agent.deb
 
-    - name: Collect disk facts (Linux)
-      ansible.builtin.disk_facts:
-        path: /
-      when: ansible_facts['os_family'] == 'Linux'
-      register: disk_facts
+                # Configure for Linux
+                cat <<EOF > /opt/aws/amazon-cloudwatch-agent/bin/config.json
+                {
+                  "agent": {
+                    "metrics_collection_interval": 60,
+                    "run_as_user": "root"
+                  },
+                  "metrics": {
+                    "append_dimensions": {
+                      "InstanceId": "{{ ansible_host }}"
+                    },
+                    "metrics_collected": {
+                      "disk": {
+                        "measurement": ["used_percent"],
+                        "resources": ["*"]
+                      }
+                    }
+                  }
+                }
+                EOF
 
-    - name: Collect disk facts (Windows)
-      ansible.windows.win_disk_facts:
-      when: ansible_facts['os_family'] == 'Windows'
-      register: win_disk_facts
+                sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json -s
+              fi
 
-    - name: Push disk utilization to CloudWatch (Linux)
-      aws_cloudwatch_put_metric_data:
-        namespace: DiskMonitoring
-        metric_data:
-          - metric_name: DiskUtilization
-            dimensions:
-              InstanceId: "{{ ansible_host }}"
-              Device: "{{ item.device }}"
-            value: "{{ item.percent | float }}"
-            unit: Percent
-      loop: "{{ disk_facts.disk_facts }}"
-      loop_control:
-        label: "{{ item.device }}"
-      when: ansible_facts['os_family'] == 'Linux'
-      ignore_errors: yes
-      retries: 3
-      delay: 10
+              # Windows: Install CloudWatch Agent
+              if [ -f "C:\System32\WindowsPowerShell\v1.0\powershell.exe" ]; then
+                Invoke-WebRequest -Uri "https://s3.amazonaws.com/amazoncloudwatch-agent/windows/amd64/latest/amazon-cloudwatch-agent.msi" -OutFile "C:\Temp\amazon-cloudwatch-agent.msi"
+                Start-Process msiexec.exe -ArgumentList "/i C:\Temp\amazon-cloudwatch-agent.msi /qn" -Wait
 
-    - name: Push disk utilization to CloudWatch (Windows)
-      aws_cloudwatch_put_metric_data:
-        namespace: DiskMonitoring
-        metric_data:
-          - metric_name: DiskUtilization
-            dimensions:
-              InstanceId: "{{ ansible_host }}"
-              Device: "{{ item.drive }}"
-            value: "{{ item.free_space | float }}"
-            unit: Percent
-      loop: "{{ win_disk_facts.win_disk_facts }}"
-      loop_control:
-        label: "{{ item.drive }}"
-      when: ansible_facts['os_family'] == 'Windows'
-      ignore_errors: yes
-      retries: 3
-      delay: 10
+                # Configure for Windows
+                $config = @{
+                  "agent" = @{
+                    "metrics_collection_interval" = 60
+                  },
+                  "metrics" = @{
+                    "append_dimensions" = @{
+                      "InstanceId" = "{{ ansible_host }}"
+                    },
+                    "metrics_collected" = @{
+                      "disk" = @{
+                        "measurement" = ["used_percent"],
+                        "resources" = ["*"]
+                      }
+                    }
+                  }
+                } | ConvertTo-Json -Depth 10
+
+                Set-Content -Path "C:\ProgramData\Amazon\AmazonCloudWatchAgent\config.json" -Value $config
+                Start-Service AmazonCloudWatchAgent
+              fi
+        document_version: "\$DEFAULT"
+        timeout_seconds: 300
+      register: ssm_result
+      async: 60
+      poll: 0
