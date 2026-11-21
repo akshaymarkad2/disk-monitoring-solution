@@ -1,0 +1,16 @@
+---
+- name: Disk Monitoring (SSM + CloudWatch Agent Only)
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Verify CloudWatch Agent is running
+      win_service:
+        name: AmazonCloudWatchAgent
+        state: started
+      when: ansible_facts['os_family'] == 'Windows'
+
+    - name: Verify CloudWatch Agent is running
+      service:
+        name: amazon-cloudwatch-agent
+        state: started
+      when: ansible_facts['os_family'] == 'Linux'
